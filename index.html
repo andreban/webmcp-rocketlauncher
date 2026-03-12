@@ -1,17 +1,153 @@
-<!--
- Copyright 2026 Google LLC
- SPDX-License-Identifier: Apache-2.0
--->
+<!-- Copyright 2026 Google LLC / SPDX-License-Identifier: Apache-2.0 -->
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tmp-rocket</title>
+    <title>WebMCP Rocket Launch</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app" data-state="IDLE">
+      <div class="left-panel">
+        <div class="status-badge" data-state="IDLE">● IDLE</div>
+
+        <svg
+          class="rocket-svg"
+          viewBox="0 0 200 330"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-label="Rocket"
+        >
+          <!-- Engine flames (hidden by default, shown in LAUNCHED state) -->
+          <g class="rocket-flames">
+            <ellipse cx="100" cy="296" rx="25" ry="32" fill="#FF5500" />
+            <ellipse cx="100" cy="289" rx="17" ry="22" fill="#FF8800" />
+            <ellipse cx="100" cy="282" rx="11" ry="14" fill="#FFD700" />
+            <ellipse
+              cx="100"
+              cy="277"
+              rx="6"
+              ry="8"
+              fill="white"
+              opacity="0.9"
+            />
+          </g>
+
+          <!-- Fins (drawn behind body) -->
+          <polygon
+            points="62,190 18,252 62,252"
+            fill="#CC2200"
+            stroke="#111"
+            stroke-width="3.5"
+            stroke-linejoin="round"
+          />
+          <polygon
+            points="138,190 182,252 138,252"
+            fill="#CC2200"
+            stroke="#111"
+            stroke-width="3.5"
+            stroke-linejoin="round"
+          />
+
+          <!-- Main body -->
+          <rect
+            x="62"
+            y="100"
+            width="76"
+            height="152"
+            rx="38"
+            fill="#FF4422"
+            stroke="#111"
+            stroke-width="3.5"
+          />
+
+          <!-- Nose cone (dome, overlays body top) -->
+          <path
+            d="M 62 140 Q 62 35 100 30 Q 138 35 138 140 Z"
+            fill="#FFD700"
+            stroke="#111"
+            stroke-width="3.5"
+            stroke-linejoin="round"
+          />
+
+          <!-- Star emblem on body -->
+          <text
+            x="100"
+            y="160"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="22"
+            fill="white"
+            stroke="#111"
+            stroke-width="1.5"
+            paint-order="stroke"
+          >
+            ★
+          </text>
+
+          <!-- Window (porthole) -->
+          <circle
+            cx="100"
+            cy="193"
+            r="26"
+            fill="#87CEEB"
+            stroke="#111"
+            stroke-width="3.5"
+          />
+          <circle cx="100" cy="193" r="21" fill="#64B5F6" stroke="none" />
+          <ellipse cx="90" cy="183" rx="8" ry="6" fill="white" opacity="0.55" />
+
+          <!-- Engine nozzle -->
+          <path
+            d="M 76 250 L 64 272 L 136 272 L 124 250 Z"
+            fill="#888"
+            stroke="#111"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M 81 250 L 75 267 L 125 267 L 119 250 Z"
+            fill="#444"
+            stroke="none"
+          />
+        </svg>
+
+        <div class="manual-controls">
+          <p class="controls-title">Manual Controls</p>
+          <div class="control-group">
+            <label for="auth-code">Auth code</label>
+            <input
+              type="text"
+              id="auth-code"
+              maxlength="4"
+              placeholder="0000"
+              autocomplete="off"
+            />
+          </div>
+          <div class="control-group">
+            <label for="trajectory">Trajectory</label>
+            <select id="trajectory">
+              <option value="Moon">Moon</option>
+              <option value="Mars">Mars</option>
+              <option value="ISS">ISS</option>
+              <option value="Jupiter">Jupiter</option>
+              <option value="Alpha Centauri">Alpha Centauri</option>
+            </select>
+          </div>
+          <button class="btn btn-prepare" id="btn-prepare">
+            Prepare Launch
+          </button>
+          <button class="btn btn-ignite" id="btn-ignite">Ignite Engines</button>
+          <button class="btn btn-reset" id="btn-reset">Reset</button>
+          <p class="auth-hint">Auth code: <span id="auth-display"></span></p>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="log-header">Action Log</div>
+        <div id="log" class="log-entries"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

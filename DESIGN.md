@@ -157,7 +157,7 @@ Tools should be registered on page load. `get_page_state`, `prepare_launch`, and
 
 - **Left panel:** Rocket graphic + status badge + manual controls
 - **Right panel:** Action log — populated by every state transition regardless of trigger source (manual or WebMCP)
-- **Rocket graphic:** CSS/SVG that reacts to state (idle = static, prepared = glow, launched = animated)
+- **Rocket graphic:** CSS/SVG that reacts to state (idle = static, prepared = glow, launched = animated); style is cartoony — bold outlines, flat colors, exaggerated proportions
 - **Manual controls:** Always visible; buttons are enabled/disabled based on current state
 
 The log captures the same three things whether triggered by a button click or a WebMCP tool call:
@@ -217,7 +217,7 @@ Each chunk is independently reviewable and buildable in order.
 
 - Two-panel layout (rocket panel + log panel) in HTML/CSS
 - Status badge with correct color per state
-- Rocket SVG placeholder (static, no animation yet)
+- Rocket SVG (cartoony style: bold outlines, flat colors, exaggerated proportions) — static, no animation yet; SVG is generated inline, not sourced from an external file
 - Log panel renders hardcoded placeholder entries
 
 **Review gate:** Layout matches the design at all three states when toggled manually via the browser console.
