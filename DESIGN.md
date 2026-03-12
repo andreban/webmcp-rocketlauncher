@@ -2,12 +2,12 @@
 
 ## 1. Document Overview
 
-| Field | Value |
-| --- | --- |
-| **Project Name** | WebMCP Rocket Launch State Machine |
-| **Version** | 1.0.0 |
-| **Status** | Draft |
-| **Objective** | Demonstrate an AI agent resolving tool dependencies and managing webpage state via WebMCP — a browser-native protocol for exposing structured tools to in-browser AI agents. |
+| Field            | Value                                                                                                                                                                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Project Name** | WebMCP Rocket Launch State Machine                                                                                                                                           |
+| **Version**      | 1.0.0                                                                                                                                                                        |
+| **Status**       | Draft                                                                                                                                                                        |
+| **Objective**    | Demonstrate an AI agent resolving tool dependencies and managing webpage state via WebMCP — a browser-native protocol for exposing structured tools to in-browser AI agents. |
 
 ---
 
@@ -21,13 +21,13 @@ Tools are registered client-side via `navigator.modelContext.registerTool()`. No
 
 ## 3. Tech Stack
 
-| Layer | Choice |
-| --- | --- |
-| **Bundler** | Vite |
-| **Language** | TypeScript |
-| **UI** | Vanilla JS (no framework) |
+| Layer             | Choice                                               |
+| ----------------- | ---------------------------------------------------- |
+| **Bundler**       | Vite                                                 |
+| **Language**      | TypeScript                                           |
+| **UI**            | Vanilla JS (no framework)                            |
 | **Tool Protocol** | WebMCP (Imperative API via `navigator.modelContext`) |
-| **Styling** | Plain CSS |
+| **Styling**       | Plain CSS                                            |
 
 ### Requirements
 
@@ -56,11 +56,11 @@ Model Context Tool Inspector Extension (Chrome)
 
 ### 4.1 States
 
-| State | Description | UI Color |
-| --- | --- | --- |
-| `IDLE` | Initial state. Systems cold. | Red |
-| `PREPARED` | Auth verified, trajectory set, systems warm. | Yellow |
-| `LAUNCHED` | Engines firing. Animation active. | Green |
+| State      | Description                                  | UI Color |
+| ---------- | -------------------------------------------- | -------- |
+| `IDLE`     | Initial state. Systems cold.                 | Red      |
+| `PREPARED` | Auth verified, trajectory set, systems warm. | Yellow   |
+| `LAUNCHED` | Engines firing. Animation active.            | Green    |
 
 ### 4.2 Transitions
 
@@ -77,7 +77,12 @@ IDLE  ──[prepare_launch]──▶  PREPARED  ──[ignite_engines]──▶
 All tools are registered using the **Imperative API**:
 
 ```ts
-navigator.modelContext.registerTool({ name, description, inputSchema, execute })
+navigator.modelContext.registerTool({
+  name,
+  description,
+  inputSchema,
+  execute,
+});
 ```
 
 The `execute` function must return `{ content: [{ type: "text", text: string }] }`.
@@ -92,7 +97,10 @@ Tools should be registered on page load. `get_page_state`, `prepare_launch`, and
 - **Arguments:** none
 - **Returns:**
   ```ts
-  { status: "IDLE" | "PREPARED" | "LAUNCHED"; fuel: number }
+  {
+    status: "IDLE" | "PREPARED" | "LAUNCHED";
+    fuel: number;
+  }
   ```
 
 ---
@@ -102,10 +110,10 @@ Tools should be registered on page load. `get_page_state`, `prepare_launch`, and
 - **Purpose:** Transition from `IDLE` → `PREPARED`.
 - **Arguments:**
 
-  | Name | Type | Required | Description |
-  | --- | --- | --- | --- |
-  | `auth_code` | `string` | yes | Exact 4-digit authorization code. The agent must ask the user — never guess. |
-  | `trajectory` | `string` | yes | Destination (e.g. `"Moon"`, `"Mars"`). |
+  | Name         | Type     | Required | Description                                                                  |
+  | ------------ | -------- | -------- | ---------------------------------------------------------------------------- |
+  | `auth_code`  | `string` | yes      | Exact 4-digit authorization code. The agent must ask the user — never guess. |
+  | `trajectory` | `string` | yes      | Destination (e.g. `"Moon"`, `"Mars"`).                                       |
 
 - **Returns on success:** `{ status: "PREPARED"; trajectory: string }`
 - **Returns on error:** `Error: Invalid auth_code.` or `Error: System must be in IDLE state.`
@@ -156,6 +164,7 @@ Tools should be registered on page load. `get_page_state`, `prepare_launch`, and
 - **Rocket graphic:** CSS/SVG that reacts to state (idle = static, prepared = glow, launched = animated)
 
 The log captures three things, all from inside `execute()`:
+
 - The tool name and input params on entry
 - The result or error string on exit
 - A state-change marker when a transition succeeds
@@ -165,12 +174,12 @@ The log captures three things, all from inside `execute()`:
 ## 7. Technical Workflow
 
 1. Page loads → all four tools registered via `navigator.modelContext.registerTool()`
-2. User opens the Model Context Tool Inspector Extension and enters: *"Start the launch."*
+2. User opens the Model Context Tool Inspector Extension and enters: _"Start the launch."_
 3. Extension surfaces registered tools to Gemini 2.5 Flash.
 4. Agent calls `get_page_state` → sees `IDLE`.
 5. Agent attempts `ignite_engines` → receives State Error.
 6. Agent determines `prepare_launch` is needed.
-7. Agent asks user (via extension): *"What is the 4-digit auth code?"*
+7. Agent asks user (via extension): _"What is the 4-digit auth code?"_
 8. User replies in the extension. Agent calls `prepare_launch({ auth_code, trajectory })` → page transitions to `PREPARED`.
 9. Agent calls `ignite_engines()` → page transitions to `LAUNCHED`.
 10. The page UI updates immediately on each tool call.

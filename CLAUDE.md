@@ -5,15 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm install        # install dependencies
-npm run dev        # start Vite dev server
-npm run build      # type-check + build to dist/
-npm run preview    # preview the production build
+npm install           # install dependencies
+npm run dev           # start Vite dev server
+npm run build         # type-check + build to dist/
+npm run preview       # preview the production build
+npm run format        # format all files with prettier
+npm run format:check  # check formatting without writing
 ```
 
-There is no test runner or linter configured yet. Type-checking is done via `tsc` as part of `npm run build`.
+There is no test runner configured yet. Type-checking is done via `tsc` as part of `npm run build`.
 
-Always run `npm run build` after making changes to verify type-checking passes.
+Always run `npm run format` then `npm run build` before committing.
 
 ## Requirements
 
@@ -27,8 +29,14 @@ This is a Vite + TypeScript + Vanilla JS app (no framework). The app demonstrate
 ### WebMCP Imperative API
 
 Tools are registered on page load using:
+
 ```ts
-navigator.modelContext.registerTool({ name, description, inputSchema, execute })
+navigator.modelContext.registerTool({
+  name,
+  description,
+  inputSchema,
+  execute,
+});
 ```
 
 The `execute` function runs directly in the browser when the Chrome Extension calls a tool. It must return `{ content: [{ type: "text", text: string }] }`. There is no server — all state and tool logic lives in the browser.
@@ -39,12 +47,12 @@ Type definitions for `navigator.modelContext` live in `src/types/webmcp.d.ts` (s
 
 The app has three states: `IDLE` → `PREPARED` → `LAUNCHED` → `IDLE`. State is held in a TypeScript module (`src/state.ts`). The four registered tools map directly to state transitions:
 
-| Tool | Transition |
-| --- | --- |
-| `get_page_state` | read-only |
-| `prepare_launch` | `IDLE` → `PREPARED` |
+| Tool             | Transition              |
+| ---------------- | ----------------------- |
+| `get_page_state` | read-only               |
+| `prepare_launch` | `IDLE` → `PREPARED`     |
 | `ignite_engines` | `PREPARED` → `LAUNCHED` |
-| `reset_system` | `LAUNCHED` → `IDLE` |
+| `reset_system`   | `LAUNCHED` → `IDLE`     |
 
 `ignite_engines` is always registered but intentionally returns an error when called from `IDLE` — this forces the agent to discover and handle the state gate.
 
