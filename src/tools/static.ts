@@ -10,6 +10,10 @@ import {
   execResetSystem,
 } from "./execute";
 
+/**
+ * Initializes and registers all WebMCP tools statically.
+ * In static mode, all tools are registered up-front regardless of current state.
+ */
 export function initStaticTools(): void {
   const ctx = navigator.modelContext!;
 

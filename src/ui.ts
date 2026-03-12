@@ -35,12 +35,19 @@ const STATE_MARKERS: Record<string, string> = {
   LAUNCHED: "[LAUNCHED] Engines firing",
 };
 
+/** Types of log entries that can be displayed in the UI. */
 export type LogEntryType =
   | "state-marker"
   | "tool-call"
   | "tool-result"
   | "tool-error";
 
+/**
+ * Appends a log entry to the log panel.
+ *
+ * @param type - The styling category of the log entry.
+ * @param text - The content of the log entry.
+ */
 export function appendLog(type: LogEntryType, text: string): void {
   const div = document.createElement("div");
   div.className = `log-entry ${type}`;
@@ -49,6 +56,9 @@ export function appendLog(type: LogEntryType, text: string): void {
   log.scrollTop = log.scrollHeight;
 }
 
+/**
+ * Synchronizes the UI state (badges, dataset attributes) with the current system state.
+ */
 export function renderState(): void {
   const { status } = getState();
   app.dataset.state = status;
@@ -56,6 +66,10 @@ export function renderState(): void {
   badge.textContent = STATE_LABELS[status];
 }
 
+/**
+ * Initializes the UI, setting up event listeners for manual controls
+ * and rendering the initial state.
+ */
 export function initUI(): void {
   // Show auth code
   authDisplay.textContent = VALID_AUTH_CODE;

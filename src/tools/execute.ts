@@ -6,14 +6,31 @@
 import { getState, prepareLaunch, igniteEngines, resetSystem } from "../state";
 import { appendLog, renderState } from "../ui";
 
+/**
+ * Returns a successful tool execution response containing the serialized data.
+ *
+ * @param data - The payload to serialize and return.
+ * @returns A structured object compatible with WebMCP tool execution results.
+ */
 export function ok(data: unknown): object {
   return { content: [{ type: "text", text: JSON.stringify(data) }] };
 }
 
+/**
+ * Returns a failed tool execution response containing an error message.
+ *
+ * @param message - The error message to return.
+ * @returns A structured object compatible with WebMCP tool execution results.
+ */
 export function err(message: string): object {
   return { content: [{ type: "text", text: `Error: ${message}` }] };
 }
 
+/**
+ * Executes the get_page_state tool, returning the current rocket status and fuel level.
+ *
+ * @returns A successful response containing the current state.
+ */
 export function execGetPageState(): object {
   const state = getState();
   appendLog("tool-call", "▶ get_page_state()");
@@ -22,6 +39,12 @@ export function execGetPageState(): object {
   return ok(result);
 }
 
+/**
+ * Executes the prepare_launch tool, transitioning the system to the PREPARED state.
+ *
+ * @param input - The tool input arguments containing auth_code and trajectory.
+ * @returns A successful response if preparation succeeds, or an error response.
+ */
 export function execPrepareLaunch(input: Record<string, unknown>): object {
   const authCode = String(input["auth_code"] ?? "");
   const trajectory = String(input["trajectory"] ?? "");
@@ -44,6 +67,11 @@ export function execPrepareLaunch(input: Record<string, unknown>): object {
   }
 }
 
+/**
+ * Executes the ignite_engines tool, transitioning the system to the LAUNCHED state.
+ *
+ * @returns A successful response if ignition succeeds, or an error response.
+ */
 export function execIgniteEngines(): object {
   appendLog("tool-call", "▶ ignite_engines()");
   const result = igniteEngines();
@@ -58,6 +86,11 @@ export function execIgniteEngines(): object {
   }
 }
 
+/**
+ * Executes the reset_system tool, returning the system to the IDLE state.
+ *
+ * @returns A successful response containing the reset state.
+ */
 export function execResetSystem(): object {
   appendLog("tool-call", "▶ reset_system()");
   const result = resetSystem();

@@ -71,6 +71,11 @@ function syncRegistrations(): void {
   }
 }
 
+/**
+ * Initializes WebMCP tools in dynamic mode.
+ * Registers `get_page_state` globally and subscribes to state changes
+ * to dynamically register/unregister state-dependent tools.
+ */
 export function initDynamicTools(): void {
   const ctx = navigator.modelContext!;
 
