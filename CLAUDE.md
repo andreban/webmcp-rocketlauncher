@@ -9,13 +9,15 @@ npm install           # install dependencies
 npm run dev           # start Vite dev server
 npm run build         # type-check + build to dist/
 npm run preview       # preview the production build
+npm run test          # run tests once (vitest)
+npm run test:watch    # run tests in watch mode
 npm run format        # format all files with prettier
 npm run format:check  # check formatting without writing
 ```
 
-There is no test runner configured yet. Type-checking is done via `tsc` as part of `npm run build`.
+Type-checking is done via `tsc` as part of `npm run build`. Tests use Vitest. Unit tests live alongside source files as `*.test.ts`.
 
-Always run `npm run format` then `npm run build` before committing.
+Always run `npm run format`, `npm run test`, and `npm run build` before committing. Always write unit tests for new modules.
 
 ## Requirements
 
