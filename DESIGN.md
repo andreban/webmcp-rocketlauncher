@@ -141,31 +141,28 @@ Tools should be registered on page load. `get_page_state`, `prepare_launch`, and
 
 ```
 ┌──────────────────────────┬───────────────────────────────┐
-│                          │  TOOL CALL LOG                │
+│                          │  ACTION LOG                   │
 │   [STATUS BADGE]         │  ─────────────────────────── │
 │                          │  [IDLE]  System initialized   │
-│      (rocket SVG)        │  ▶ get_page_state()           │
-│                          │  ◀ { status:"IDLE", fuel:100 }│
-│                          │  ▶ ignite_engines()           │
-│                          │  ✗ Error: must be PREPARED    │
-│                          │  ▶ prepare_launch(            │
+│      (rocket SVG)        │  ▶ prepare_launch(            │
 │                          │      auth_code: "1234",       │
-│                          │      trajectory: "Moon")      │
-│                          │  ◀ { status: "PREPARED" }     │
-│                          │  [PREPARED]  Systems warm     │
-│                          │  ▶ ignite_engines()           │
-│                          │  ◀ { status: "LAUNCHED" }     │
-│                          │  [LAUNCHED]  Engines firing   │
+│  ── Manual Controls ──   │      trajectory: "Moon")      │
+│  Auth code: [____]       │  ◀ { status: "PREPARED" }     │
+│  Trajectory: [____]      │  [PREPARED]  Systems warm     │
+│  [Prepare Launch]        │  ▶ ignite_engines()           │
+│  [Ignite Engines]        │  ◀ { status: "LAUNCHED" }     │
+│  [Reset]                 │  [LAUNCHED]  Engines firing   │
 └──────────────────────────┴───────────────────────────────┘
 ```
 
-- **Left panel:** Rocket graphic + status badge — animates on state change
-- **Right panel:** In-page tool call log — populated from within each `execute()` handler
+- **Left panel:** Rocket graphic + status badge + manual controls
+- **Right panel:** Action log — populated by every state transition regardless of trigger source (manual or WebMCP)
 - **Rocket graphic:** CSS/SVG that reacts to state (idle = static, prepared = glow, launched = animated)
+- **Manual controls:** Always visible; buttons are enabled/disabled based on current state
 
-The log captures three things, all from inside `execute()`:
+The log captures the same three things whether triggered by a button click or a WebMCP tool call:
 
-- The tool name and input params on entry
+- The action name and input params on entry
 - The result or error string on exit
 - A state-change marker when a transition succeeds
 
@@ -216,17 +213,7 @@ Each chunk is independently reviewable and buildable in order.
 
 ---
 
-### Chunk 3 — WebMCP Tool Registration
-
-- Register all four tools via `navigator.modelContext.registerTool()`
-- `execute()` handlers wire into the state module from Chunk 2
-- Return correct `{ content: [{ type: "text", text }] }` shapes for success and error cases
-
-**Review gate:** Model Context Tool Inspector Extension lists all four tools; manual execution via the extension triggers correct state transitions and returns expected responses.
-
----
-
-### Chunk 4 — Static UI
+### Chunk 3 — Static UI
 
 - Two-panel layout (rocket panel + log panel) in HTML/CSS
 - Status badge with correct color per state
@@ -237,13 +224,26 @@ Each chunk is independently reviewable and buildable in order.
 
 ---
 
-### Chunk 5 — Dynamic UI Binding
+### Chunk 4 — Interactive UI with Manual Controls
 
-- Status badge and rocket SVG react to state changes
-- Log panel populated by `execute()` handlers (tool name, params, result/error, state-change markers)
+- Status badge and rocket SVG react to live state changes
+- Manual control buttons wired to the state machine (`prepare_launch`, `ignite_engines`, `reset_system`)
+- Input fields for `auth_code` and `trajectory` for `prepare_launch`
+- Log panel populated by each state transition (action, params, result/error, state-change markers)
 - Rocket animation active only in `LAUNCHED` state
 
-**Review gate:** Running the full tool sequence via the extension updates the page in real time with correct log entries and visual transitions.
+**Review gate:** The full launch sequence can be driven end-to-end using the manual controls, with the log updating in real time and the rocket animating on launch.
+
+---
+
+### Chunk 5 — WebMCP Tool Registration
+
+- Register all four tools via `navigator.modelContext.registerTool()`
+- `execute()` handlers wire into the same state module used by the manual controls
+- Return correct `{ content: [{ type: "text", text }] }` shapes for success and error cases
+- Log panel entries are now also triggered by tool calls from the extension
+
+**Review gate:** Model Context Tool Inspector Extension lists all four tools; running the full agent sequence via the extension drives the same UI transitions as the manual controls.
 
 ---
 
