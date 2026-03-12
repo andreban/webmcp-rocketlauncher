@@ -24,6 +24,25 @@ export const VALID_AUTH_CODE = "1234";
 
 let state: State = { status: "IDLE", fuel: 100 };
 
+type StateListener = () => void;
+const listeners: StateListener[] = [];
+
+/**
+ * Subscribes to state changes. The listener is called after every successful
+ * transition. Returns an unsubscribe function.
+ */
+export function subscribe(listener: StateListener): () => void {
+  listeners.push(listener);
+  return () => {
+    const idx = listeners.indexOf(listener);
+    if (idx !== -1) listeners.splice(idx, 1);
+  };
+}
+
+function notify(): void {
+  for (const l of listeners) l();
+}
+
 /** Returns a snapshot of the current rocket state. */
 export function getState(): Readonly<State> {
   return { ...state };
@@ -54,6 +73,7 @@ export function prepareLaunch(
     return { success: false, error: "Invalid auth_code." };
   }
   state = { ...state, status: "PREPARED", trajectory };
+  notify();
   return { success: true, status: "PREPARED", trajectory };
 }
 
@@ -79,6 +99,7 @@ export function igniteEngines(): IgniteResult {
     };
   }
   state = { ...state, status: "LAUNCHED" };
+  notify();
   return { success: true, status: "LAUNCHED" };
 }
 
@@ -91,10 +112,12 @@ export type ResetResult = { status: "IDLE"; fuel: number };
  */
 export function resetSystem(): ResetResult {
   state = { status: "IDLE", fuel: 100 };
+  notify();
   return { status: "IDLE", fuel: 100 };
 }
 
-/** Resets module-level state to `IDLE`. For use in tests only. */
+/** Resets module-level state and listeners to `IDLE`. For use in tests only. */
 export function _resetForTesting(): void {
   state = { status: "IDLE", fuel: 100 };
+  listeners.length = 0;
 }

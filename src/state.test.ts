@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   VALID_AUTH_CODE,
   _resetForTesting,
@@ -11,6 +11,7 @@ import {
   igniteEngines,
   prepareLaunch,
   resetSystem,
+  subscribe,
 } from "./state.ts";
 
 beforeEach(() => {
@@ -93,5 +94,35 @@ describe("resetSystem", () => {
     igniteEngines();
     resetSystem();
     expect(getState().trajectory).toBeUndefined();
+  });
+});
+
+describe("subscribe", () => {
+  it("calls the listener after each successful transition", () => {
+    const listener = vi.fn();
+    subscribe(listener);
+    prepareLaunch(VALID_AUTH_CODE, "Moon");
+    expect(listener).toHaveBeenCalledTimes(1);
+    igniteEngines();
+    expect(listener).toHaveBeenCalledTimes(2);
+    resetSystem();
+    expect(listener).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not call the listener on failed transitions", () => {
+    const listener = vi.fn();
+    subscribe(listener);
+    prepareLaunch("wrong", "Moon");
+    igniteEngines(); // called from IDLE — should fail
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("stops calling the listener after unsubscribing", () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribe(listener);
+    prepareLaunch(VALID_AUTH_CODE, "Moon");
+    unsubscribe();
+    igniteEngines();
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

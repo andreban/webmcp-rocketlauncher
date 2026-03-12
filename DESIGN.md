@@ -87,11 +87,48 @@ navigator.modelContext.registerTool({
 
 The `execute` function must return `{ content: [{ type: "text", text: string }] }`.
 
-Tools should be registered on page load. `get_page_state`, `prepare_launch`, and `reset_system` are always available. `ignite_engines` is always registered but returns an error if state is not `PREPARED` — this is intentional: the agent must discover and handle the error itself.
+### 5.1 Registration Strategies
+
+The app supports two tool registration strategies, selectable via the `?mode=` URL query parameter. This enables direct comparison of how each pattern affects agent behavior.
+
+#### Strategy A — Static (`?mode=static`, default)
+
+All four tools are registered once on page load and remain registered for the entire session. Tool descriptions include state prerequisites so the agent understands when each tool is applicable. `ignite_engines` intentionally returns an error when called from `IDLE` — the agent must discover this, backtrack, and call `prepare_launch` first.
+
+This is the **error-driven discovery** pattern: the agent navigates via error messages and tool descriptions.
+
+#### Strategy B — Dynamic (`?mode=dynamic`)
+
+Only the tools valid for the current state are registered at any given time. On each successful state transition, stale tools are unregistered via `navigator.modelContext.unregisterTool()` and replacement tools are registered:
+
+| State      | Registered tools                   |
+| ---------- | ---------------------------------- |
+| `IDLE`     | `get_page_state`, `prepare_launch` |
+| `PREPARED` | `get_page_state`, `ignite_engines` |
+| `LAUNCHED` | `get_page_state`, `reset_system`   |
+
+This is the **context-driven availability** pattern: the agent only sees tools it can legally call. No wrong-state errors are possible, but the backtrack-from-error behavior is also eliminated.
+
+Registration is kept in sync via a state subscription (`state.subscribe()`), so both manual button clicks and agent tool calls trigger re-registration automatically.
+
+#### Comparison
+
+| Aspect                         | Static | Dynamic |
+| ------------------------------ | ------ | ------- |
+| Agent sees wrong-state tools?  | Yes    | No      |
+| Agent must interpret errors?   | Yes    | No      |
+| Tool list changes mid-session? | No     | Yes     |
+| Error-driven backtrack path?   | Yes    | No      |
 
 ---
 
-### `get_page_state`
+### 5.2 Tool Definitions
+
+`get_page_state` is registered in both strategies and is never unregistered.
+
+---
+
+### `get_page_state` <!-- always registered -->
 
 - **Purpose:** Read the current rocket state.
 - **Arguments:** none
@@ -140,7 +177,9 @@ Tools should be registered on page load. `get_page_state`, `prepare_launch`, and
 ## 6. UI Layout
 
 ```
-┌──────────────────────────┬───────────────────────────────┐
+┌──────────────────────────────────────────────────────────┐
+│  [Static Mode]  [Dynamic Mode]       ← mode switcher     │
+├──────────────────────────┬───────────────────────────────┤
 │                          │  ACTION LOG                   │
 │   [STATUS BADGE]         │  ─────────────────────────── │
 │                          │  [IDLE]  System initialized   │
@@ -155,6 +194,7 @@ Tools should be registered on page load. `get_page_state`, `prepare_launch`, and
 └──────────────────────────┴───────────────────────────────┘
 ```
 
+- **Mode switcher:** Two tab-style links at the top of the page — "Static Mode" and "Dynamic Mode". Clicking switches the `?mode=` URL param and reloads the page. The active mode is visually highlighted.
 - **Left panel:** Rocket graphic + status badge + manual controls
 - **Right panel:** Action log — populated by every state transition regardless of trigger source (manual or WebMCP)
 - **Rocket graphic:** CSS/SVG that reacts to state (idle = static, prepared = glow, launched = animated); style is cartoony — bold outlines, flat colors, exaggerated proportions
@@ -170,9 +210,11 @@ The log captures the same three things whether triggered by a button click or a 
 
 ## 7. Technical Workflow
 
+### 7.1 Static Mode (`?mode=static`)
+
 1. Page loads → all four tools registered via `navigator.modelContext.registerTool()`
 2. User opens the Model Context Tool Inspector Extension and enters: _"Start the launch."_
-3. Extension surfaces registered tools to Gemini 2.5 Flash.
+3. Extension surfaces all four registered tools to Gemini 2.5 Flash.
 4. Agent calls `get_page_state` → sees `IDLE`.
 5. Agent attempts `ignite_engines` → receives State Error.
 6. Agent determines `prepare_launch` is needed.
@@ -180,6 +222,18 @@ The log captures the same three things whether triggered by a button click or a 
 8. User replies in the extension. Agent calls `prepare_launch({ auth_code, trajectory })` → page transitions to `PREPARED`.
 9. Agent calls `ignite_engines()` → page transitions to `LAUNCHED`.
 10. The page UI updates immediately on each tool call.
+
+### 7.2 Dynamic Mode (`?mode=dynamic`)
+
+1. Page loads → only `get_page_state` and `prepare_launch` registered.
+2. User opens the Model Context Tool Inspector Extension and enters: _"Start the launch."_
+3. Extension surfaces only the two registered tools.
+4. Agent calls `get_page_state` → sees `IDLE`.
+5. Agent calls `prepare_launch` — `ignite_engines` is not yet visible.
+6. Agent asks user: _"What is the 4-digit auth code?"_
+7. User replies. Agent calls `prepare_launch({ auth_code, trajectory })` → page transitions to `PREPARED` → `prepare_launch` is unregistered, `ignite_engines` is registered.
+8. Extension now surfaces `ignite_engines`. Agent calls it → page transitions to `LAUNCHED` → `ignite_engines` is unregistered, `reset_system` is registered.
+9. The page UI updates immediately on each tool call.
 
 ---
 
@@ -236,22 +290,42 @@ Each chunk is independently reviewable and buildable in order.
 
 ---
 
-### Chunk 5 — WebMCP Tool Registration
+### Chunk 5 — WebMCP Tool Registration with Dual Strategy
 
-- Register all four tools via `navigator.modelContext.registerTool()`
-- `execute()` handlers wire into the same state module used by the manual controls
+- New module `src/tools.ts` implements both registration strategies
+- `RegistrationMode = "static" | "dynamic"` type exported from `tools.ts`
+- `initTools(mode)` called from `main.ts` after `initUI()`; mode read from `?mode=` URL param (default: `"static"`)
+- `execute()` handlers wire into the same state module and call `appendLog` / `renderState` from `ui.ts` — log entries appear identically whether triggered by manual controls or agent
 - Return correct `{ content: [{ type: "text", text }] }` shapes for success and error cases
-- Log panel entries are now also triggered by tool calls from the extension
+- **Static strategy:** all four tools registered once; descriptions include state prerequisites
+- **Dynamic strategy:** `state.subscribe()` callback re-registers tools on every state change; only tools valid for the current state are visible to the agent
+- `state.ts` gains a `subscribe(listener)` function to support dynamic re-registration from both tool calls and manual button clicks
+- Mode switcher added to `index.html` as two tab-style links (`?mode=static` / `?mode=dynamic`); active mode highlighted in CSS
+- Unit tests cover `subscribe()` behavior in `state.test.ts`
 
-**Review gate:** Model Context Tool Inspector Extension lists all four tools; running the full agent sequence via the extension drives the same UI transitions as the manual controls.
+**Review gate (Static):** Model Context Tool Inspector Extension lists all four tools; running the full agent sequence drives the same UI transitions as the manual controls, with the agent backtracking from the ignition error.
+
+**Review gate (Dynamic):** Switching to `?mode=dynamic` and running the agent shows only two tools initially; after each successful transition the tool list updates; agent completes the sequence without encountering any wrong-state errors.
 
 ---
 
 ## 9. Success Criteria
 
+### Both Modes
+
 - [ ] Agent does not guess or hallucinate the `auth_code`.
-- [ ] Agent correctly interprets the ignition error and backtracks.
 - [ ] UI updates in real time on each successful tool call.
 - [ ] Agent console accurately streams each tool call and its result.
 - [ ] `reset_system` returns the full UI to `IDLE` state.
-- [ ] All tools are inspectable via the Model Context Tool Inspector Extension.
+- [ ] Mode switcher correctly highlights the active mode and reloads with the correct `?mode=` param.
+
+### Static Mode
+
+- [ ] All four tools are inspectable via the Model Context Tool Inspector Extension at page load.
+- [ ] Agent correctly interprets the ignition error and backtracks to `prepare_launch`.
+
+### Dynamic Mode
+
+- [ ] Only `get_page_state` and `prepare_launch` are visible to the agent at page load.
+- [ ] Tool list updates after each successful state transition.
+- [ ] Agent completes the full sequence without encountering any wrong-state errors.
