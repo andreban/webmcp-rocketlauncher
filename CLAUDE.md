@@ -13,6 +13,8 @@ npm run preview    # preview the production build
 
 There is no test runner or linter configured yet. Type-checking is done via `tsc` as part of `npm run build`.
 
+Always run `npm run build` after making changes to verify type-checking passes.
+
 ## Requirements
 
 - **Chrome 146+** with `chrome://flags/#enable-webmcp-testing` set to Enabled
