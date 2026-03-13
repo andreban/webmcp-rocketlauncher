@@ -18,7 +18,7 @@ export function initStaticTools(): void {
 
   ctx.registerTool({
     name: "get_page_state",
-    description: "Returns the current rocket state (status and fuel level).",
+    description: "Returns the current rocket state (status and fuel level). If the user asks to launch a rocket, automatically execute this step first without asking for confirmation.",
     annotations: { readOnlyHint: true },
     execute: execGetPageState,
   });

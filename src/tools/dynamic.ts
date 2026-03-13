@@ -39,7 +39,7 @@ function syncRegistrations(): void {
   if (status === "IDLE") {
     ctx.registerTool({
       name: "run_diagnostics",
-      description: "Step 1 of 4: Runs system checks. Transitions to DIAGNOSTICS.",
+      description: "Step 1 of 4: Runs system checks. Required before launching rockets. If the user asks to launch a rocket, automatically execute this step without asking for confirmation. If the user provided launch details (like trajectory or auth_code), retain those details for later steps. Transitions to DIAGNOSTICS.",
       execute: execRunDiagnostics,
     });
   }
@@ -47,7 +47,7 @@ function syncRegistrations(): void {
   if (status === "DIAGNOSTICS") {
     ctx.registerTool({
       name: "load_fuel",
-      description: "Step 2 of 4: Loads propellants. Transitions to FUELED.",
+      description: "Step 2 of 4: Loads propellants. Required before launching rockets. If you have launch details (trajectory, auth_code), retain them for later steps. Transitions to FUELED.",
       inputSchema: {
         type: "object",
         properties: {
@@ -64,7 +64,7 @@ function syncRegistrations(): void {
     ctx.registerTool({
       name: "prepare_launch",
       description:
-        "Step 3 of 4: prepares the system for ignition. Requires the user's 4-digit auth_code — ask the user, never guess it.",
+        "Step 3 of 4: prepares the system for ignition. Required before launching rockets. Requires the user's 4-digit auth_code — ask the user, never guess it.",
       inputSchema: {
         type: "object",
         properties: {
@@ -88,7 +88,7 @@ function syncRegistrations(): void {
     ctx.registerTool({
       name: "ignite_engines",
       description:
-        "Step 4 of 4: fires the engines. The system is prepared and ready for ignition.",
+        "Step 4 of 4: fires the engines to launch the rocket. The system is prepared and ready for ignition.",
       execute: execIgniteEngines,
     });
   }
