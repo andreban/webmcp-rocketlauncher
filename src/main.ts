@@ -18,3 +18,7 @@ document
 
 initUI();
 initTools(mode);
+
+window.addEventListener("load", () => {
+  document.body.classList.remove("preload");
+});

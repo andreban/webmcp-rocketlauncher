@@ -1,13 +1,12 @@
-/**
- * Copyright 2026 Google LLC
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import {
   execGetPageState,
   execPrepareLaunch,
   execIgniteEngines,
   execResetSystem,
+  execRunDiagnostics,
+  execCalculateFuel,
+  execLoadFuel,
+  execAbortSequence,
 } from "./execute";
 
 /**
@@ -25,9 +24,51 @@ export function initStaticTools(): void {
   });
 
   ctx.registerTool({
+    name: "calculate_fuel",
+    description: "Calculates the required fuel amount and oxidizer ratio based on the target trajectory.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        trajectory: {
+          type: "string",
+          description: 'Launch destination, e.g. "Moon", "Mars", "ISS".',
+        },
+      },
+      required: ["trajectory"],
+    },
+    execute: execCalculateFuel,
+  });
+
+  ctx.registerTool({
+    name: "run_diagnostics",
+    description: "Runs system checks. Transitions from IDLE to DIAGNOSTICS. Only valid when status is IDLE.",
+    execute: execRunDiagnostics,
+  });
+
+  ctx.registerTool({
+    name: "load_fuel",
+    description: "Loads propellants. Transitions from DIAGNOSTICS to FUELED. Only valid when status is DIAGNOSTICS.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        amount: {
+          type: "number",
+          description: "Fuel amount in tons.",
+        },
+        oxidizer_ratio: {
+          type: "number",
+          description: "Oxidizer ratio (e.g., 2.5).",
+        },
+      },
+      required: ["amount", "oxidizer_ratio"],
+    },
+    execute: execLoadFuel,
+  });
+
+  ctx.registerTool({
     name: "prepare_launch",
     description:
-      "Transitions the system from IDLE to PREPARED. Requires the user's 4-digit auth_code — ask the user, never guess it. Only valid when status is IDLE.",
+      "Transitions the system from FUELED to PREPARED. Requires the user's 4-digit auth_code — ask the user, never guess it. Only valid when status is FUELED.",
     inputSchema: {
       type: "object",
       properties: {
@@ -49,8 +90,15 @@ export function initStaticTools(): void {
   ctx.registerTool({
     name: "ignite_engines",
     description:
-      "Fires the rocket engines, transitioning from PREPARED to LAUNCHED. Only valid when status is PREPARED — call prepare_launch first if status is IDLE.",
+      "Fires the rocket engines, transitioning from PREPARED to LAUNCHED. Only valid when status is PREPARED — follow the full prerequisite chain first.",
     execute: execIgniteEngines,
+  });
+
+  ctx.registerTool({
+    name: "abort_sequence",
+    description:
+      "Aborts the sequence and resets to IDLE. Valid from any state during the sequence.",
+    execute: execAbortSequence,
   });
 
   ctx.registerTool({

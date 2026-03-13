@@ -11,6 +11,8 @@ import {
   igniteEngines,
   prepareLaunch,
   resetSystem,
+  runDiagnostics,
+  loadFuel,
   subscribe,
 } from "./state.ts";
 
@@ -24,8 +26,51 @@ describe("getState", () => {
   });
 });
 
+describe("runDiagnostics", () => {
+  it("transitions IDLE → DIAGNOSTICS", () => {
+    const result = runDiagnostics();
+    expect(result).toEqual({ success: true, status: "DIAGNOSTICS" });
+    expect(getState().status).toBe("DIAGNOSTICS");
+  });
+
+  it("rejects if not in IDLE state", () => {
+    runDiagnostics();
+    const result = runDiagnostics();
+    expect(result).toEqual({
+      success: false,
+      error: "System must be in IDLE state to run diagnostics.",
+    });
+  });
+});
+
+describe("loadFuel", () => {
+  it("transitions DIAGNOSTICS → FUELED with valid inputs", () => {
+    runDiagnostics();
+    const result = loadFuel(100, 2.5);
+    expect(result).toEqual({
+      success: true,
+      status: "FUELED",
+      fuelAmount: 100,
+      oxidizerRatio: 2.5,
+    });
+    expect(getState().status).toBe("FUELED");
+    expect(getState().fuelAmount).toBe(100);
+    expect(getState().oxidizerRatio).toBe(2.5);
+  });
+
+  it("rejects if not in DIAGNOSTICS state", () => {
+    const result = loadFuel(100, 2.5);
+    expect(result).toEqual({
+      success: false,
+      error: "System must be in DIAGNOSTICS state to load fuel. Please run diagnostics.",
+    });
+  });
+});
+
 describe("prepareLaunch", () => {
-  it("transitions IDLE → PREPARED with valid inputs", () => {
+  it("transitions FUELED → PREPARED with valid inputs", () => {
+    runDiagnostics();
+    loadFuel(100, 2.5);
     const result = prepareLaunch(VALID_AUTH_CODE, "Moon");
     expect(result).toEqual({
       success: true,
@@ -37,23 +82,26 @@ describe("prepareLaunch", () => {
   });
 
   it("rejects an invalid auth_code", () => {
+    runDiagnostics();
+    loadFuel(100, 2.5);
     const result = prepareLaunch("0000", "Moon");
     expect(result).toEqual({ success: false, error: "Invalid auth_code." });
-    expect(getState().status).toBe("IDLE");
+    expect(getState().status).toBe("FUELED");
   });
 
-  it("rejects if not in IDLE state", () => {
-    prepareLaunch(VALID_AUTH_CODE, "Moon");
+  it("rejects if not in FUELED state", () => {
     const result = prepareLaunch(VALID_AUTH_CODE, "Mars");
     expect(result).toEqual({
       success: false,
-      error: "System must be in IDLE state.",
+      error: "System must be in FUELED state. Please load fuel.",
     });
   });
 });
 
 describe("igniteEngines", () => {
   it("transitions PREPARED → LAUNCHED", () => {
+    runDiagnostics();
+    loadFuel(100, 2.5);
     prepareLaunch(VALID_AUTH_CODE, "Moon");
     const result = igniteEngines();
     expect(result).toEqual({ success: true, status: "LAUNCHED" });
@@ -70,6 +118,8 @@ describe("igniteEngines", () => {
   });
 
   it("rejects if called again after LAUNCHED", () => {
+    runDiagnostics();
+    loadFuel(100, 2.5);
     prepareLaunch(VALID_AUTH_CODE, "Moon");
     igniteEngines();
     const result = igniteEngines();
@@ -82,6 +132,8 @@ describe("igniteEngines", () => {
 
 describe("resetSystem", () => {
   it("transitions LAUNCHED → IDLE with full fuel", () => {
+    runDiagnostics();
+    loadFuel(100, 2.5);
     prepareLaunch(VALID_AUTH_CODE, "Moon");
     igniteEngines();
     const result = resetSystem();
@@ -90,6 +142,8 @@ describe("resetSystem", () => {
   });
 
   it("clears trajectory on reset", () => {
+    runDiagnostics();
+    loadFuel(100, 2.5);
     prepareLaunch(VALID_AUTH_CODE, "Mars");
     igniteEngines();
     resetSystem();
@@ -101,28 +155,34 @@ describe("subscribe", () => {
   it("calls the listener after each successful transition", () => {
     const listener = vi.fn();
     subscribe(listener);
-    prepareLaunch(VALID_AUTH_CODE, "Moon");
+    runDiagnostics();
     expect(listener).toHaveBeenCalledTimes(1);
-    igniteEngines();
+    loadFuel(100, 2.5);
     expect(listener).toHaveBeenCalledTimes(2);
-    resetSystem();
+    prepareLaunch(VALID_AUTH_CODE, "Moon");
     expect(listener).toHaveBeenCalledTimes(3);
+    igniteEngines();
+    expect(listener).toHaveBeenCalledTimes(4);
+    resetSystem();
+    expect(listener).toHaveBeenCalledTimes(5);
   });
 
   it("does not call the listener on failed transitions", () => {
     const listener = vi.fn();
     subscribe(listener);
+    runDiagnostics();
+    loadFuel(100, 2.5);
     prepareLaunch("wrong", "Moon");
-    igniteEngines(); // called from IDLE — should fail
-    expect(listener).not.toHaveBeenCalled();
+    igniteEngines(); // called from FUELED — should fail
+    expect(listener).toHaveBeenCalledTimes(2); // Only success calls runDiagnostics & loadFuel
   });
 
   it("stops calling the listener after unsubscribing", () => {
     const listener = vi.fn();
     const unsubscribe = subscribe(listener);
-    prepareLaunch(VALID_AUTH_CODE, "Moon");
+    runDiagnostics();
     unsubscribe();
-    igniteEngines();
+    loadFuel(100, 2.5);
     expect(listener).toHaveBeenCalledTimes(1);
   });
 });

@@ -9,12 +9,19 @@ import {
   execPrepareLaunch,
   execIgniteEngines,
   execResetSystem,
+  execRunDiagnostics,
+  execCalculateFuel,
+  execLoadFuel,
+  execAbortSequence,
 } from "./execute";
 
 const STATE_DEPENDENT_TOOLS = [
+  "run_diagnostics",
+  "load_fuel",
   "prepare_launch",
   "ignite_engines",
   "reset_system",
+  "abort_sequence",
 ] as const;
 
 function syncRegistrations(): void {
@@ -31,9 +38,33 @@ function syncRegistrations(): void {
 
   if (status === "IDLE") {
     ctx.registerTool({
+      name: "run_diagnostics",
+      description: "Step 1 of 4: Runs system checks. Transitions to DIAGNOSTICS.",
+      execute: execRunDiagnostics,
+    });
+  }
+
+  if (status === "DIAGNOSTICS") {
+    ctx.registerTool({
+      name: "load_fuel",
+      description: "Step 2 of 4: Loads propellants. Transitions to FUELED.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          amount: { type: "number", description: "Fuel amount in tons." },
+          oxidizer_ratio: { type: "number", description: "Oxidizer ratio (e.g., 2.5)." },
+        },
+        required: ["amount", "oxidizer_ratio"],
+      },
+      execute: execLoadFuel,
+    });
+  }
+
+  if (status === "FUELED") {
+    ctx.registerTool({
       name: "prepare_launch",
       description:
-        "Step 1 of 2 to launch the rocket: prepares the system for ignition. Call this first, then ignite_engines will become available. Requires the user's 4-digit auth_code — ask the user, never guess it.",
+        "Step 3 of 4: prepares the system for ignition. Requires the user's 4-digit auth_code — ask the user, never guess it.",
       inputSchema: {
         type: "object",
         properties: {
@@ -57,7 +88,7 @@ function syncRegistrations(): void {
     ctx.registerTool({
       name: "ignite_engines",
       description:
-        "Step 2 of 2 to launch the rocket: fires the engines. The system is prepared and ready for ignition.",
+        "Step 4 of 4: fires the engines. The system is prepared and ready for ignition.",
       execute: execIgniteEngines,
     });
   }
@@ -68,9 +99,14 @@ function syncRegistrations(): void {
       description: "Resets the system to IDLE with full fuel.",
       execute: execResetSystem,
     });
+  } else if (status !== "IDLE") {
+    ctx.registerTool({
+      name: "abort_sequence",
+      description: "Aborts the sequence and resets to IDLE.",
+      execute: execAbortSequence,
+    });
   }
 }
-
 /**
  * Initializes WebMCP tools in dynamic mode.
  * Registers `get_page_state` globally and subscribes to state changes
@@ -84,6 +120,22 @@ export function initDynamicTools(): void {
     description: "Returns the current rocket state (status and fuel level).",
     annotations: { readOnlyHint: true },
     execute: execGetPageState,
+  });
+
+  ctx.registerTool({
+    name: "calculate_fuel",
+    description: "Calculates the required fuel amount and oxidizer ratio based on the target trajectory.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        trajectory: {
+          type: "string",
+          description: 'Launch destination, e.g. "Moon", "Mars", "ISS".',
+        },
+      },
+      required: ["trajectory"],
+    },
+    execute: execCalculateFuel,
   });
 
   syncRegistrations();

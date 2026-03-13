@@ -33,13 +33,18 @@ The rocket system has three states. Tools drive every transition:
 
 ```mermaid
 stateDiagram-v2
+    direction LR
+    
     [*] --> IDLE
-
-    IDLE --> PREPARED : prepare_launch\n(auth_code, trajectory)
-    PREPARED --> LAUNCHED : ignite_engines
-    LAUNCHED --> IDLE : reset_system
-    IDLE --> IDLE : reset_system
-    PREPARED --> IDLE : reset_system
+    IDLE --> DIAGNOSTICS: run_diagnostics
+    DIAGNOSTICS --> FUELED: load_fuel\n(amount, oxidizer_ratio)
+    FUELED --> PREPARED: prepare_launch\n(auth_code, trajectory)
+    PREPARED --> LAUNCHED: ignite_engines
+    
+    LAUNCHED --> IDLE: reset_system
+    DIAGNOSTICS --> IDLE: abort_sequence
+    FUELED --> IDLE: abort_sequence
+    PREPARED --> IDLE: abort_sequence
 ```
 
 ### States
@@ -47,6 +52,8 @@ stateDiagram-v2
 | State | Meaning |
 |---|---|
 | `IDLE` | System at rest, ready to be prepared |
+| `DIAGNOSTICS` | System checks completed, ready for propellants |
+| `FUELED` | Propellants loaded, ready for final launch prep |
 | `PREPARED` | Trajectory set, engines armed, awaiting ignition |
 | `LAUNCHED` | Rocket in flight |
 
@@ -55,9 +62,13 @@ stateDiagram-v2
 | Tool | Valid from | Transition | Notes |
 |---|---|---|---|
 | `get_page_state` | Any | None (read-only) | Returns current status and fuel level |
-| `prepare_launch` | `IDLE` | `IDLE → PREPARED` | Requires `auth_code` (ask the user) and `trajectory` |
-| `ignite_engines` | `PREPARED` | `PREPARED → LAUNCHED` | Registered in static mode but returns an error if called from `IDLE` |
-| `reset_system` | Any | `* → IDLE` | Resets fuel to 100 and clears trajectory |
+| `calculate_fuel` | Any | None | Returns fuel/oxidizer ratio for a given destination |
+| `run_diagnostics` | `IDLE` | `IDLE → DIAGNOSTICS` | Prerequisite for fueling |
+| `load_fuel` | `DIAGNOSTICS` | `DIAGNOSTICS → FUELED` | Requires `amount` and `oxidizer_ratio` |
+| `prepare_launch` | `FUELED` | `FUELED → PREPARED` | Requires `auth_code` (ask the user) and `trajectory` |
+| `ignite_engines` | `PREPARED` | `PREPARED → LAUNCHED` | Registered in static mode but returns an error if called earlier in the sequence |
+| `abort_sequence` | Active Sequence | `* → IDLE` | Aborts a launch sequence and resets |
+| `reset_system` | Any | `* → IDLE` | Resets system entirely |
 
 > **Auth code:** `prepare_launch` requires a 4-digit authorization code displayed on the page. The agent must ask the user for it — it must never be guessed.
 
