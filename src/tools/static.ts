@@ -14,18 +14,20 @@ import {
  * In static mode, all tools are registered up-front regardless of current state.
  */
 export function initStaticTools(): void {
-  const ctx = navigator.modelContext!;
+  const ctx = document.modelContext!;
 
   ctx.registerTool({
     name: "get_page_state",
-    description: "Returns the current rocket state (status and fuel level). If the user asks to launch a rocket, automatically execute this step first without asking for confirmation.",
+    description:
+      "Returns the current rocket state (status and fuel level). If the user asks to launch a rocket, automatically execute this step first without asking for confirmation.",
     annotations: { readOnlyHint: true },
     execute: execGetPageState,
   });
 
   ctx.registerTool({
     name: "calculate_fuel",
-    description: "Calculates the required fuel amount and oxidizer ratio based on the target trajectory.",
+    description:
+      "Calculates the required fuel amount and oxidizer ratio based on the target trajectory.",
     inputSchema: {
       type: "object",
       properties: {
@@ -41,13 +43,15 @@ export function initStaticTools(): void {
 
   ctx.registerTool({
     name: "run_diagnostics",
-    description: "Runs system checks. Transitions from IDLE to DIAGNOSTICS. Only valid when status is IDLE.",
+    description:
+      "Runs system checks. Transitions from IDLE to DIAGNOSTICS. Only valid when status is IDLE.",
     execute: execRunDiagnostics,
   });
 
   ctx.registerTool({
     name: "load_fuel",
-    description: "Loads propellants. Transitions from DIAGNOSTICS to FUELED. Only valid when status is DIAGNOSTICS.",
+    description:
+      "Loads propellants. Transitions from DIAGNOSTICS to FUELED. Only valid when status is DIAGNOSTICS.",
     inputSchema: {
       type: "object",
       properties: {
