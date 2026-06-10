@@ -26,14 +26,14 @@ Always run `npm run format`, `npm run test`, and `npm run build` before committi
 
 ## Architecture
 
-This is a Vite + TypeScript + Vanilla JS app (no framework). The app demonstrates WebMCP — a browser-native API that exposes structured tools to in-browser AI agents via `navigator.modelContext`.
+This is a Vite + TypeScript + Vanilla JS app (no framework). The app demonstrates WebMCP — a browser-native API that exposes structured tools to in-browser AI agents via `document.modelContext`.
 
 ### WebMCP Imperative API
 
 Tools are registered on page load using:
 
 ```ts
-navigator.modelContext.registerTool({
+document.modelContext.registerTool({
   name,
   description,
   inputSchema,
@@ -43,7 +43,7 @@ navigator.modelContext.registerTool({
 
 The `execute` function runs directly in the browser when the Chrome Extension calls a tool. It must return `{ content: [{ type: "text", text: string }] }`. There is no server — all state and tool logic lives in the browser.
 
-Type definitions for `navigator.modelContext` live in `src/types/webmcp.d.ts` (sourced from the GoogleChromeLabs repo).
+Type definitions for `document.modelContext` live in `src/types/webmcp.d.ts` (sourced from the GoogleChromeLabs repo).
 
 ### State Machine
 

@@ -15,19 +15,19 @@
 
 A technical showcase where an AI agent must navigate a **State Gate**. The primary action (`ignite_engines`) is locked behind a prerequisite state (`PREPARED`). The agent must discover the error, backtrack to the preparation step, gather required parameters from the user, and complete the sequence — without hallucinating any values.
 
-Tools are registered client-side via `navigator.modelContext.registerTool()`. No backend server is required.
+Tools are registered client-side via `document.modelContext.registerTool()`. No backend server is required.
 
 ---
 
 ## 3. Tech Stack
 
-| Layer             | Choice                                               |
-| ----------------- | ---------------------------------------------------- |
-| **Bundler**       | Vite                                                 |
-| **Language**      | TypeScript                                           |
-| **UI**            | Vanilla JS (no framework)                            |
-| **Tool Protocol** | WebMCP (Imperative API via `navigator.modelContext`) |
-| **Styling**       | Plain CSS                                            |
+| Layer             | Choice                                              |
+| ----------------- | --------------------------------------------------- |
+| **Bundler**       | Vite                                                |
+| **Language**      | TypeScript                                          |
+| **UI**            | Vanilla JS (no framework)                           |
+| **Tool Protocol** | WebMCP (Imperative API via `document.modelContext`) |
+| **Styling**       | Plain CSS                                           |
 
 ### Requirements
 
@@ -36,13 +36,13 @@ Tools are registered client-side via `navigator.modelContext.registerTool()`. No
 
 ### Architecture
 
-All tools are registered in the browser via `navigator.modelContext.registerTool()`. The state machine is held in TypeScript module state — no server required. The agent is provided by the **Model Context Tool Inspector Extension**, which reads the page's registered tools and drives the interaction via its built-in Gemini model.
+All tools are registered in the browser via `document.modelContext.registerTool()`. The state machine is held in TypeScript module state — no server required. The agent is provided by the **Model Context Tool Inspector Extension**, which reads the page's registered tools and drives the interaction via its built-in Gemini model.
 
 ```
 Browser Tab
 └── Vite + TypeScript app
     ├── State machine (IDLE / PREPARED / LAUNCHED)
-    ├── navigator.modelContext.registerTool(...)  ← WebMCP Imperative API
+    ├── document.modelContext.registerTool(...)  ← WebMCP Imperative API
     └── UI (rocket SVG, status badge)
 
 Model Context Tool Inspector Extension (Chrome)
@@ -77,7 +77,7 @@ IDLE  ──[prepare_launch]──▶  PREPARED  ──[ignite_engines]──▶
 All tools are registered using the **Imperative API**:
 
 ```ts
-navigator.modelContext.registerTool({
+document.modelContext.registerTool({
   name,
   description,
   inputSchema,
@@ -99,7 +99,7 @@ This is the **error-driven discovery** pattern: the agent navigates via error me
 
 #### Strategy B — Dynamic (`?mode=dynamic`)
 
-Only the tools valid for the current state are registered at any given time. On each successful state transition, stale tools are unregistered via `navigator.modelContext.unregisterTool()` and replacement tools are registered:
+Only the tools valid for the current state are registered at any given time. On each successful state transition, stale tools are unregistered via `document.modelContext.unregisterTool()` and replacement tools are registered:
 
 | State      | Registered tools                   |
 | ---------- | ---------------------------------- |
@@ -212,7 +212,7 @@ The log captures the same three things whether triggered by a button click or a 
 
 ### 7.1 Static Mode (`?mode=static`)
 
-1. Page loads → all four tools registered via `navigator.modelContext.registerTool()`
+1. Page loads → all four tools registered via `document.modelContext.registerTool()`
 2. User opens the Model Context Tool Inspector Extension and enters: _"Start the launch."_
 3. Extension surfaces all four registered tools to Gemini 2.5 Flash.
 4. Agent calls `get_page_state` → sees `IDLE`.

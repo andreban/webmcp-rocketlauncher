@@ -25,7 +25,7 @@ const STATE_DEPENDENT_TOOLS = [
 ] as const;
 
 function syncRegistrations(): void {
-  const ctx = navigator.modelContext!;
+  const ctx = document.modelContext!;
   const { status } = getState();
 
   for (const name of STATE_DEPENDENT_TOOLS) {
@@ -39,7 +39,8 @@ function syncRegistrations(): void {
   if (status === "IDLE") {
     ctx.registerTool({
       name: "run_diagnostics",
-      description: "Step 1 of 4: Runs system checks. Required before launching rockets. If the user asks to launch a rocket, automatically execute this step without asking for confirmation. If the user provided launch details (like trajectory or auth_code), retain those details for later steps. Transitions to DIAGNOSTICS.",
+      description:
+        "Step 1 of 4: Runs system checks. Required before launching rockets. If the user asks to launch a rocket, automatically execute this step without asking for confirmation. If the user provided launch details (like trajectory or auth_code), retain those details for later steps. Transitions to DIAGNOSTICS.",
       execute: execRunDiagnostics,
     });
   }
@@ -47,12 +48,16 @@ function syncRegistrations(): void {
   if (status === "DIAGNOSTICS") {
     ctx.registerTool({
       name: "load_fuel",
-      description: "Step 2 of 4: Loads propellants. Required before launching rockets. If you have launch details (trajectory, auth_code), retain them for later steps. Transitions to FUELED.",
+      description:
+        "Step 2 of 4: Loads propellants. Required before launching rockets. If you have launch details (trajectory, auth_code), retain them for later steps. Transitions to FUELED.",
       inputSchema: {
         type: "object",
         properties: {
           amount: { type: "number", description: "Fuel amount in tons." },
-          oxidizer_ratio: { type: "number", description: "Oxidizer ratio (e.g., 2.5)." },
+          oxidizer_ratio: {
+            type: "number",
+            description: "Oxidizer ratio (e.g., 2.5).",
+          },
         },
         required: ["amount", "oxidizer_ratio"],
       },
@@ -113,7 +118,7 @@ function syncRegistrations(): void {
  * to dynamically register/unregister state-dependent tools.
  */
 export function initDynamicTools(): void {
-  const ctx = navigator.modelContext!;
+  const ctx = document.modelContext!;
 
   ctx.registerTool({
     name: "get_page_state",
@@ -124,7 +129,8 @@ export function initDynamicTools(): void {
 
   ctx.registerTool({
     name: "calculate_fuel",
-    description: "Calculates the required fuel amount and oxidizer ratio based on the target trajectory.",
+    description:
+      "Calculates the required fuel amount and oxidizer ratio based on the target trajectory.",
     inputSchema: {
       type: "object",
       properties: {

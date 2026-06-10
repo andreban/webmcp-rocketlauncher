@@ -15,7 +15,7 @@ export type RegistrationMode = "static" | "dynamic";
  * @param mode - The registration mode ("static" or "dynamic").
  */
 export function initTools(mode: RegistrationMode): void {
-  if (!navigator.modelContext) return;
+  if (!document.modelContext) return;
   if (mode === "static") {
     initStaticTools();
   } else {
