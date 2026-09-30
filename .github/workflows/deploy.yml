@@ -1,0 +1,58 @@
+# Copyright 2026 Google LLC
+# SPDX-License-Identifier: Apache-2.0
+
+# Builds the app and syncs dist/ to Cloud Storage.
+#
+# Authenticates with Workload Identity Federation (no service account keys).
+# The target bucket, directory and identity provider are stored as secrets on
+# the `production` environment, which only `main` can deploy to.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run test
+      - run: npm run build
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Sync dist/ to Cloud Storage
+        env:
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
+          GCS_PREFIX: ${{ secrets.GCS_PREFIX }}
+        run: |
+          # An empty prefix would sync (and delete) at the bucket root.
+          if [ -z "$GCS_BUCKET" ] || [ -z "$GCS_PREFIX" ]; then
+            echo "GCS_BUCKET and GCS_PREFIX must be set" >&2
+            exit 1
+          fi
+          gcloud storage rsync dist "gs://${GCS_BUCKET}/${GCS_PREFIX}" \
+            --recursive --delete-unmatched-destination-objects
