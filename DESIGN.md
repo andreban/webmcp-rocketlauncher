@@ -31,7 +31,7 @@ Tools are registered client-side via `document.modelContext.registerTool()`. No 
 
 ### Requirements
 
-- **Chrome 146+** with the `#enable-webmcp-testing` flag enabled (`chrome://flags/#enable-webmcp-testing`)
+- **Chrome 149+** with the `#enable-webmcp-testing` flag enabled (`chrome://flags/#enable-webmcp-testing`)
 - The [Model Context Tool Inspector Extension](https://googlechromelabs.github.io/webmcp-tools/) is recommended for development and manual tool testing
 
 ### Architecture
@@ -85,7 +85,7 @@ document.modelContext.registerTool({
 });
 ```
 
-The `execute` function must return `{ content: [{ type: "text", text: string }] }`.
+The `execute` function receives `(input, { signal })` and returns a plain JSON-serializable value, which the browser serializes for the agent. Failures resolve a structured `{ error, code }` object: a thrown error or rejection reaches the agent only as a generic `UnknownError`.
 
 ### 5.1 Registration Strategies
 
@@ -99,7 +99,7 @@ This is the **error-driven discovery** pattern: the agent navigates via error me
 
 #### Strategy B — Dynamic (`?mode=dynamic`)
 
-Only the tools valid for the current state are registered at any given time. On each successful state transition, stale tools are unregistered via `document.modelContext.unregisterTool()` and replacement tools are registered:
+Only the tools valid for the current state are registered at any given time. On each successful state transition, stale tools are unregistered by aborting the `AbortSignal` passed to `registerTool()` (WebMCP has no `unregisterTool()`), and replacement tools are registered:
 
 | State      | Registered tools                   |
 | ---------- | ---------------------------------- |
@@ -246,12 +246,9 @@ Each chunk is independently reviewable and buildable in order.
 ### Chunk 1 — Project Scaffold
 
 - Init Vite + TypeScript project (`npm create vite`)
-- Download WebMCP type definitions into the project:
-  ```
-  https://raw.githubusercontent.com/GoogleChromeLabs/webmcp-tools/refs/heads/main/demos/shared/types/webmcp.d.ts
-  ```
-- Reference the file in `tsconfig.json` via `typeRoots` or a `/// <reference path="..." />` directive
-- Verify dev server runs in Chrome 146+ with the flag enabled
+- Install the WebMCP type definitions: `npm install -D webmcp-types`
+- Add `"webmcp-types"` to `compilerOptions.types` in `tsconfig.json`
+- Verify dev server runs in Chrome 149+ with the flag enabled
 
 **Review gate:** `npm run dev` opens a blank page with no console errors.
 
@@ -296,7 +293,7 @@ Each chunk is independently reviewable and buildable in order.
 - `RegistrationMode = "static" | "dynamic"` type exported from `tools.ts`
 - `initTools(mode)` called from `main.ts` after `initUI()`; mode read from `?mode=` URL param (default: `"static"`)
 - `execute()` handlers wire into the same state module and call `appendLog` / `renderState` from `ui.ts` — log entries appear identically whether triggered by manual controls or agent
-- Return correct `{ content: [{ type: "text", text }] }` shapes for success and error cases
+- Return plain JSON objects on success and resolve structured `{ error, code }` objects on failure
 - **Static strategy:** all four tools registered once; descriptions include state prerequisites
 - **Dynamic strategy:** `state.subscribe()` callback re-registers tools on every state change; only tools valid for the current state are visible to the agent
 - `state.ts` gains a `subscribe(listener)` function to support dynamic re-registration from both tool calls and manual button clicks

@@ -21,9 +21,15 @@ const trajectoryInput = document.getElementById(
   "trajectory",
 ) as HTMLSelectElement;
 const authDisplay = document.getElementById("auth-display")!;
-const btnDiagnostics = document.getElementById("btn-diagnostics") as HTMLButtonElement;
-const fuelAmountInput = document.getElementById("fuel-amount") as HTMLInputElement;
-const oxidizerRatioInput = document.getElementById("oxidizer-ratio") as HTMLInputElement;
+const btnDiagnostics = document.getElementById(
+  "btn-diagnostics",
+) as HTMLButtonElement;
+const fuelAmountInput = document.getElementById(
+  "fuel-amount",
+) as HTMLInputElement;
+const oxidizerRatioInput = document.getElementById(
+  "oxidizer-ratio",
+) as HTMLInputElement;
 const btnFuel = document.getElementById("btn-fuel") as HTMLButtonElement;
 const btnPrepare = document.getElementById("btn-prepare") as HTMLButtonElement;
 const btnIgnite = document.getElementById("btn-ignite") as HTMLButtonElement;
@@ -76,11 +82,21 @@ export function renderState(): void {
 
   let stateIndex = 0;
   switch (status) {
-    case "IDLE": stateIndex = 0; break;
-    case "DIAGNOSTICS": stateIndex = 1; break;
-    case "FUELED": stateIndex = 2; break;
-    case "PREPARED": stateIndex = 3; break;
-    case "LAUNCHED": stateIndex = 4; break;
+    case "IDLE":
+      stateIndex = 0;
+      break;
+    case "DIAGNOSTICS":
+      stateIndex = 1;
+      break;
+    case "FUELED":
+      stateIndex = 2;
+      break;
+    case "PREPARED":
+      stateIndex = 3;
+      break;
+    case "LAUNCHED":
+      stateIndex = 4;
+      break;
   }
 
   // Update classes for nodes and connectors
@@ -106,12 +122,19 @@ export function renderState(): void {
 
   const fueledAmountEl = document.getElementById("state-fueled-amount");
   const fueledRatioEl = document.getElementById("state-fueled-ratio");
-  if (fueledAmountEl) fueledAmountEl.textContent = state.fuelAmount !== undefined ? state.fuelAmount.toString() : "--";
-  if (fueledRatioEl) fueledRatioEl.textContent = state.oxidizerRatio !== undefined ? state.oxidizerRatio.toString() : "--";
+  if (fueledAmountEl)
+    fueledAmountEl.textContent =
+      state.fuelAmount !== undefined ? state.fuelAmount.toString() : "--";
+  if (fueledRatioEl)
+    fueledRatioEl.textContent =
+      state.oxidizerRatio !== undefined ? state.oxidizerRatio.toString() : "--";
 
-  const preparedTrajectoryEl = document.getElementById("state-prepared-trajectory");
+  const preparedTrajectoryEl = document.getElementById(
+    "state-prepared-trajectory",
+  );
   const preparedAuthEl = document.getElementById("state-prepared-auth");
-  if (preparedTrajectoryEl) preparedTrajectoryEl.textContent = state.trajectory || "--";
+  if (preparedTrajectoryEl)
+    preparedTrajectoryEl.textContent = state.trajectory || "--";
   if (preparedAuthEl) preparedAuthEl.textContent = state.authCode || "--";
 }
 
@@ -151,14 +174,14 @@ export function initUI(): void {
 
     appendLog(
       "tool-call",
-      `▶ load_fuel({\n  amount: ${amount},\n  oxidizerRatio: ${oxidizerRatio}\n})`
+      `▶ load_fuel({\n  amount: ${amount},\n  oxidizerRatio: ${oxidizerRatio}\n})`,
     );
 
     const result = loadFuel(amount, oxidizerRatio);
     if (result.success) {
       appendLog(
         "tool-result",
-        `◀ ${JSON.stringify({ status: result.status, fuelAmount: result.fuelAmount, oxidizerRatio: result.oxidizerRatio })}`
+        `◀ ${JSON.stringify({ status: result.status, fuelAmount: result.fuelAmount, oxidizerRatio: result.oxidizerRatio })}`,
       );
       renderState();
       appendLog("state-marker", STATE_MARKERS[getState().status]);

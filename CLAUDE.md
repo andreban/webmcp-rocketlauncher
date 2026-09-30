@@ -21,8 +21,9 @@ Always run `npm run format`, `npm run test`, and `npm run build` before committi
 
 ## Requirements
 
-- **Chrome 146+** with `chrome://flags/#enable-webmcp-testing` set to Enabled
+- **Chrome 149+** with `chrome://flags/#enable-webmcp-testing` set to Enabled (or served from the origin registered for the WebMCP origin trial token in `index.html`)
 - The [Model Context Tool Inspector Extension](https://googlechromelabs.github.io/webmcp-tools/) for manual tool testing and agent interaction
+- Chrome DevTools **Application > WebMCP** pane for inspecting and manually executing registered tools
 
 ## Architecture
 
@@ -30,33 +31,43 @@ This is a Vite + TypeScript + Vanilla JS app (no framework). The app demonstrate
 
 ### WebMCP Imperative API
 
-Tools are registered on page load using:
+Tools are registered through the `registerTool` helper in `src/tools/shared.ts`, which wraps:
 
 ```ts
-document.modelContext.registerTool({
-  name,
-  description,
-  inputSchema,
-  execute,
-});
+document.modelContext.registerTool(
+  { name, description, inputSchema, annotations, execute },
+  { signal }, // aborting the signal unregisters the tool
+);
 ```
 
-The `execute` function runs directly in the browser when the Chrome Extension calls a tool. It must return `{ content: [{ type: "text", text: string }] }`. There is no server — all state and tool logic lives in the browser.
+- `registerTool` returns a Promise (it rejects on e.g. a duplicate name). There is no `unregisterTool()` — unregister by aborting the `AbortSignal` passed at registration.
+- `execute(input, { signal })` runs directly in the browser when an agent calls a tool. Return a plain JSON-serializable value; the browser serializes it for the agent. Do not wrap results in `{ content: [...] }`.
+- Report failures by **resolving** `{ error, code }`. A thrown error or rejected promise reaches the agent only as a generic `UnknownError`.
+- Set `readOnlyHint: true` only on pure queries (`get_page_state`, `calculate_fuel`) and `readOnlyHint: false` on everything else. Do not use `consequentialHint` — this is a demo with no real-world consequences.
 
-Type definitions for `document.modelContext` live in `src/types/webmcp.d.ts` (sourced from the GoogleChromeLabs repo).
+There is no server — all state and tool logic lives in the browser.
+
+Type definitions for `document.modelContext` come from the [`webmcp-types`](https://www.npmjs.com/package/webmcp-types) package (enabled via `compilerOptions.types` in `tsconfig.json`) and live in the global `WebMCP` namespace, e.g. `WebMCP.ModelContextTool`.
 
 ### State Machine
 
-The app has three states: `IDLE` → `PREPARED` → `LAUNCHED` → `IDLE`. State is held in a TypeScript module (`src/state.ts`). The four registered tools map directly to state transitions:
+The app has five states: `IDLE` → `DIAGNOSTICS` → `FUELED` → `PREPARED` → `LAUNCHED` → `IDLE`. State is held in a TypeScript module (`src/state.ts`). Tools map to state transitions:
 
-| Tool             | Transition              |
-| ---------------- | ----------------------- |
-| `get_page_state` | read-only               |
-| `prepare_launch` | `IDLE` → `PREPARED`     |
-| `ignite_engines` | `PREPARED` → `LAUNCHED` |
-| `reset_system`   | `LAUNCHED` → `IDLE`     |
+| Tool              | Transition                                     |
+| ----------------- | ---------------------------------------------- |
+| `get_page_state`  | read-only                                      |
+| `calculate_fuel`  | read-only                                      |
+| `run_diagnostics` | `IDLE` → `DIAGNOSTICS`                         |
+| `load_fuel`       | `DIAGNOSTICS` → `FUELED`                       |
+| `prepare_launch`  | `FUELED` → `PREPARED`                          |
+| `ignite_engines`  | `PREPARED` → `LAUNCHED`                        |
+| `abort_sequence`  | `DIAGNOSTICS` / `FUELED` / `PREPARED` → `IDLE` |
+| `reset_system`    | `LAUNCHED` → `IDLE`                            |
 
-`ignite_engines` is always registered but intentionally returns an error when called from `IDLE` — this forces the agent to discover and handle the state gate.
+Two registration modes are selectable via `?mode=`:
+
+- **Static** (`src/tools/static.ts`): all tools registered up-front. Wrong-state calls (e.g. `ignite_engines` from `IDLE`) resolve an `INVALID_STATE` error — this forces the agent to discover and handle the state gate.
+- **Dynamic** (`src/tools/dynamic.ts`): only the tools valid for the current state are registered. On every state change, the previous state's `AbortController` is aborted and the new state's tools are registered.
 
 ### UI
 

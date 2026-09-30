@@ -1,3 +1,8 @@
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import {
   execGetPageState,
   execPrepareLaunch,
@@ -8,15 +13,19 @@ import {
   execLoadFuel,
   execAbortSequence,
 } from "./execute";
+import {
+  CALCULATE_FUEL_SCHEMA,
+  LOAD_FUEL_SCHEMA,
+  PREPARE_LAUNCH_SCHEMA,
+  registerTool,
+} from "./shared";
 
 /**
  * Initializes and registers all WebMCP tools statically.
  * In static mode, all tools are registered up-front regardless of current state.
  */
 export function initStaticTools(): void {
-  const ctx = document.modelContext!;
-
-  ctx.registerTool({
+  registerTool({
     name: "get_page_state",
     description:
       "Returns the current rocket state (status and fuel level). If the user asks to launch a rocket, automatically execute this step first without asking for confirmation.",
@@ -24,91 +33,62 @@ export function initStaticTools(): void {
     execute: execGetPageState,
   });
 
-  ctx.registerTool({
+  registerTool({
     name: "calculate_fuel",
     description:
       "Calculates the required fuel amount and oxidizer ratio based on the target trajectory.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        trajectory: {
-          type: "string",
-          description: 'Launch destination, e.g. "Moon", "Mars", "ISS".',
-        },
-      },
-      required: ["trajectory"],
-    },
+    inputSchema: CALCULATE_FUEL_SCHEMA,
+    annotations: { readOnlyHint: true },
     execute: execCalculateFuel,
   });
 
-  ctx.registerTool({
+  registerTool({
     name: "run_diagnostics",
     description:
       "Runs system checks. Transitions from IDLE to DIAGNOSTICS. Only valid when status is IDLE.",
+    annotations: { readOnlyHint: false },
     execute: execRunDiagnostics,
   });
 
-  ctx.registerTool({
+  registerTool({
     name: "load_fuel",
     description:
       "Loads propellants. Transitions from DIAGNOSTICS to FUELED. Only valid when status is DIAGNOSTICS.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        amount: {
-          type: "number",
-          description: "Fuel amount in tons.",
-        },
-        oxidizer_ratio: {
-          type: "number",
-          description: "Oxidizer ratio (e.g., 2.5).",
-        },
-      },
-      required: ["amount", "oxidizer_ratio"],
-    },
+    inputSchema: LOAD_FUEL_SCHEMA,
+    annotations: { readOnlyHint: false },
     execute: execLoadFuel,
   });
 
-  ctx.registerTool({
+  registerTool({
     name: "prepare_launch",
     description:
       "Transitions the system from FUELED to PREPARED. Requires the user's 4-digit auth_code — ask the user, never guess it. Only valid when status is FUELED.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        auth_code: {
-          type: "string",
-          description:
-            "4-digit authorization code. Must be obtained from the user.",
-        },
-        trajectory: {
-          type: "string",
-          description: 'Launch destination, e.g. "Moon" or "Mars".',
-        },
-      },
-      required: ["auth_code", "trajectory"],
-    },
+    inputSchema: PREPARE_LAUNCH_SCHEMA,
+    annotations: { readOnlyHint: false },
     execute: execPrepareLaunch,
   });
 
-  ctx.registerTool({
+  registerTool({
     name: "ignite_engines",
     description:
       "Fires the rocket engines, transitioning from PREPARED to LAUNCHED. Only valid when status is PREPARED — follow the full prerequisite chain first.",
+    annotations: { readOnlyHint: false },
     execute: execIgniteEngines,
   });
 
-  ctx.registerTool({
+  registerTool({
     name: "abort_sequence",
     description:
       "Aborts the sequence and resets to IDLE. Valid from any state during the sequence.",
+    annotations: { readOnlyHint: false },
     execute: execAbortSequence,
   });
 
-  ctx.registerTool({
+  registerTool({
     name: "reset_system",
     description:
       "Resets the system to IDLE with full fuel. Valid from any state.",
+    annotations: { readOnlyHint: false },
     execute: execResetSystem,
   });
 }
