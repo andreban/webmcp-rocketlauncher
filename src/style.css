@@ -215,7 +215,9 @@ body {
   text-transform: uppercase;
   cursor: pointer;
   user-select: none;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
   border-bottom: 1px solid var(--border);
 }
 
@@ -443,25 +445,45 @@ body {
   color: var(--text);
 }
 
-.state-node[data-node="IDLE"].active { border-color: var(--color-idle); box-shadow: 0 0 16px rgba(255, 59, 59, 0.2); }
-.state-node[data-node="IDLE"].active .node-title { color: var(--color-idle); }
+.state-node[data-node="IDLE"].active {
+  border-color: var(--color-idle);
+  box-shadow: 0 0 16px rgba(255, 59, 59, 0.2);
+}
+.state-node[data-node="IDLE"].active .node-title {
+  color: var(--color-idle);
+}
 
-.state-node[data-node="DIAGNOSTICS"].active { border-color: var(--color-diagnostics); box-shadow: 0 0 16px rgba(59, 130, 246, 0.2); }
-.state-node[data-node="DIAGNOSTICS"].active .node-title { color: var(--color-diagnostics); }
+.state-node[data-node="DIAGNOSTICS"].active {
+  border-color: var(--color-diagnostics);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+}
+.state-node[data-node="DIAGNOSTICS"].active .node-title {
+  color: var(--color-diagnostics);
+}
 
-.state-node[data-node="FUELED"].active { border-color: var(--color-fueled); box-shadow: 0 0 16px rgba(168, 85, 247, 0.2); }
-.state-node[data-node="FUELED"].active .node-title { color: var(--color-fueled); }
+.state-node[data-node="FUELED"].active {
+  border-color: var(--color-fueled);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.2);
+}
+.state-node[data-node="FUELED"].active .node-title {
+  color: var(--color-fueled);
+}
 
-.state-node[data-node="PREPARED"].active { border-color: var(--color-prepared); box-shadow: 0 0 16px rgba(255, 184, 0, 0.2); }
-.state-node[data-node="PREPARED"].active .node-title { color: var(--color-prepared); }
+.state-node[data-node="PREPARED"].active {
+  border-color: var(--color-prepared);
+  box-shadow: 0 0 16px rgba(255, 184, 0, 0.2);
+}
+.state-node[data-node="PREPARED"].active .node-title {
+  color: var(--color-prepared);
+}
 
 .state-node[data-node="LAUNCHED"].active,
-.state-node.completed { 
-  border-color: var(--color-launched); 
+.state-node.completed {
+  border-color: var(--color-launched);
 }
 .state-node[data-node="LAUNCHED"].active .node-title,
-.state-node.completed .node-title { 
-  color: var(--color-launched); 
+.state-node.completed .node-title {
+  color: var(--color-launched);
 }
 
 .node-details {
@@ -481,7 +503,9 @@ body {
   height: 24px;
   background: var(--border);
   margin: 4px 0;
-  transition: background 0.3s, box-shadow 0.3s;
+  transition:
+    background 0.3s,
+    box-shadow 0.3s;
 }
 
 .node-connector.completed {

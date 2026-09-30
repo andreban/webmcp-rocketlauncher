@@ -6,8 +6,9 @@ The app simulates a rocket launch control panel. An AI agent interacts with it b
 
 ## Requirements
 
-- **Chrome 146+** with `chrome://flags/#enable-webmcp-testing` set to **Enabled**
+- **Chrome 149+** with `chrome://flags/#enable-webmcp-testing` set to **Enabled**
 - [Model Context Tool Inspector Extension](https://googlechromelabs.github.io/webmcp-tools/) for manual tool testing and agent interaction
+- Optional: the Chrome DevTools **Application > WebMCP** pane to inspect registered tools and execute them manually
 
 ## Getting Started
 
@@ -24,12 +25,12 @@ The app supports two WebMCP registration strategies, selectable via a `?mode=` q
 
 | Mode                 | URL              | Behavior                                                                                               |
 | -------------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
-| **Static** (default) | `/?mode=static`  | All four tools registered up-front, always visible to the agent                                        |
+| **Static** (default) | `/?mode=static`  | All eight tools registered up-front, always visible to the agent                                       |
 | **Dynamic**          | `/?mode=dynamic` | Only the tools valid for the current state are registered; the tool list updates on every state change |
 
 ## State Machine
 
-The rocket system has three states. Tools drive every transition:
+The rocket system has five states. Tools drive every transition:
 
 ```mermaid
 stateDiagram-v2
@@ -62,7 +63,7 @@ stateDiagram-v2
 | Tool              | Valid from      | Transition             | Notes                                                                            |
 | ----------------- | --------------- | ---------------------- | -------------------------------------------------------------------------------- |
 | `get_page_state`  | Any             | None (read-only)       | Returns current status and fuel level                                            |
-| `calculate_fuel`  | Any             | None                   | Returns fuel/oxidizer ratio for a given destination                              |
+| `calculate_fuel`  | Any             | None (read-only)       | Returns fuel/oxidizer ratio for a given destination                              |
 | `run_diagnostics` | `IDLE`          | `IDLE → DIAGNOSTICS`   | Prerequisite for fueling                                                         |
 | `load_fuel`       | `DIAGNOSTICS`   | `DIAGNOSTICS → FUELED` | Requires `amount` and `oxidizer_ratio`                                           |
 | `prepare_launch`  | `FUELED`        | `FUELED → PREPARED`    | Requires `auth_code` (ask the user) and `trajectory`                             |
@@ -72,13 +73,17 @@ stateDiagram-v2
 
 > **Auth code:** `prepare_launch` requires a 4-digit authorization code displayed on the page. The agent must ask the user for it — it must never be guessed.
 
+Tools return plain JSON objects. Failures resolve a structured error such as `{ "error": "Ignition sequence inhibited. System must be in PREPARED state.", "code": "INVALID_STATE" }` so the agent can read the reason and recover. Error codes are `INVALID_STATE`, `INVALID_AUTH_CODE` and `INVALID_INPUT`.
+
 ## Architecture
 
 - **Vite + TypeScript** — no framework, vanilla JS
 - **`src/state.ts`** — state machine (pure functions, no side effects)
 - **`src/tools/execute.ts`** — shared `execute()` handlers for all tools
+- **`src/tools/shared.ts`** — shared input schemas and the `registerTool` helper
 - **`src/tools/static.ts`** — registers all tools once on load
-- **`src/tools/dynamic.ts`** — subscribes to state and re-registers tools on every transition
+- **`src/tools/dynamic.ts`** — subscribes to state and swaps tools on every transition, unregistering the previous state's tools by aborting their `AbortSignal`
+- **[`webmcp-types`](https://www.npmjs.com/package/webmcp-types)** — TypeScript definitions for `document.modelContext`
 - **`src/ui.ts`** — renders the rocket panel and tool call log; subscribes to state changes
 
 All tool logic runs entirely in the browser — there is no backend server.
